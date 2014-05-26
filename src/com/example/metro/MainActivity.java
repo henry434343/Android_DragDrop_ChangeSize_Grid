@@ -68,7 +68,6 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		
 		getScreenSizeandData();
 		initPoints();
 	}
@@ -84,7 +83,7 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 		itemHeight = height/6;
 		_root = (ViewGroup)findViewById(R.id.root);
 		views = new ArrayList<ViewItem>();
-	}
+	} 
 	
 	private int getTopBarHeight() {
 		int statusBar = 0;
@@ -184,21 +183,15 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 		
 	    LayoutInflater layoutInflater = LayoutInflater.from(this);  
 	    _view = layoutInflater.inflate(R.layout.grid_item, null);
-	    
-	    TextView textView = (TextView)_view.findViewById(R.id.textView_grid);
-	    textView.setText(""+ views.size());
-	    
-	    
-	    ImageView img_resize = (ImageView)_view.findViewById(R.id.resize);
-	    img_resize.setOnClickListener(resize);
-	    img_resize.setTag(views.size());
-	    
-	    ImageView img_delete = (ImageView)_view.findViewById(R.id.delete);
-	    img_delete.setOnClickListener(delete);
-	    img_delete.setTag(views.size());
-	    
-	    int x = getNewViewPosition(ItemSize.min)[0];
-	    int y = getNewViewPosition(ItemSize.min)[1];
+	    int x, y;
+	    try {
+		    x = getNewViewPosition(ItemSize.min)[0];
+		    y = getNewViewPosition(ItemSize.min)[1];
+		} catch (Exception e) {
+			// TODO: handle exception
+			showToast("無空間");
+			return;
+		}
 	    
 	    RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(itemWidth, itemHeight);
 	    layoutParams.leftMargin = (width/4)*x;
@@ -208,13 +201,23 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 	    _view.setOnTouchListener(this); 
 	    _root.addView(_view);
 	    
-	    
 	    ViewItem viewItem = new ViewItem(new int[]{x,y});
 	    viewItem.view = _view;
 	    viewItem.size = ItemSize.min;
 	    viewItem.tag = views.size();
 	    views.add(viewItem);
 	    updateScreenPosition();
+	    
+	    TextView textView = (TextView)_view.findViewById(R.id.textView_grid);
+	    textView.setText(""+ views.size());
+	    
+	    ImageView img_resize = (ImageView)_view.findViewById(R.id.resize);
+	    img_resize.setOnClickListener(resize);
+	    img_resize.setTag(viewItem);
+	    
+	    ImageView img_delete = (ImageView)_view.findViewById(R.id.delete);
+	    img_delete.setOnClickListener(delete);
+	    img_delete.setTag(viewItem);
 	}
 	
 	private int[] getNewViewPosition(ItemSize size){
@@ -224,7 +227,6 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 				if (!p.ckeck) 
 					return new int[]{p.X,p.Y};
 			}
-			return new int[]{0,0};
 		case mid_width:
 			for (int i = 0; i < points.size(); i++) {
 				try {
@@ -301,21 +303,14 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 								animation.setAnimationListener(new TranslateAnimation.AnimationListener() {
 									
 									@Override
-									public void onAnimationStart(Animation animation) {
-										// TODO Auto-generated method stub
-										
-									}
+									public void onAnimationStart(Animation animation) {}
 									
 									@Override
-									public void onAnimationRepeat(Animation animation) {
-										// TODO Auto-generated method stub
-										
-									}
+									public void onAnimationRepeat(Animation animation) {}
 									
 									@Override
 									public void onAnimationEnd(Animation animation) {
 										// TODO Auto-generated method stub
-										Log.i("chauster", "onAnimationEnd");
 										completeAnimation(otherItem.view);
 										RelativeLayout.LayoutParams layoutParamsup = (RelativeLayout.LayoutParams) otherItem.view.getLayoutParams();
 										layoutParamsup.leftMargin = start[0] * itemWidth;
@@ -367,7 +362,6 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 				} catch (Exception e) {
 					// TODO: handle exception
 				}
-
 			}
 			layoutParamsup = new RelativeLayout.LayoutParams(itemWidth*2, itemHeight);	
 			item.setPositions(new int[]{startX,startY},
@@ -417,6 +411,7 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 			break;
 		}  
 		updateScreenPosition();
+		
 		layoutParamsup.leftMargin = startX * itemWidth;
 		layoutParamsup.topMargin = startY * itemHeight;
 		item.view.setLayoutParams(layoutParamsup);
@@ -469,7 +464,7 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 		@Override
 		public void onClick(View v) {
 			// TODO Auto-generated method stub
-			ViewItem item = views.get((Integer) v.getTag());
+			ViewItem item = (ViewItem)v.getTag();
 			_root.removeView(item.view);
 			views.remove(item);
 			updateScreenPosition();
@@ -482,7 +477,7 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 		public void onClick(View v) {
 			// TODO Auto-generated method stub
 			action = Action.reSize;
-			ViewItem item = views.get((Integer) v.getTag());
+			ViewItem item = (ViewItem)v.getTag();
 			itemResize(item);
 		}
 	};
