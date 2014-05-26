@@ -7,7 +7,7 @@
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:layout_margin="10dp"
-        android:background="#ff0000" >
+        android:background="#19FF8F" >
 
         <RelativeLayout
             android:layout_width="fill_parent"
@@ -23,15 +23,24 @@
                 android:layout_centerVertical="true"
                 android:layout_centerHorizontal="true"
                 android:text="Description" />
+
         </RelativeLayout>
 
-        <Button
-            android:id="@+id/resize"
+        <ImageView
+            android:id="@+id/delete"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_alignParentTop="true"
-            android:text="Change" />
+            android:src="@drawable/delete" />
+
+        <ImageView
+            android:id="@+id/resize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            android:src="@drawable/resize" />
 
     </RelativeLayout>
 

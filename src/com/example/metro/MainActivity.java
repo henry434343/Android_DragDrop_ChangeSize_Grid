@@ -21,7 +21,7 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
-import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -51,10 +51,29 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 	}
 	
 	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+	
+	@Override
+	public boolean onMenuItemSelected(int featureId, MenuItem item) {
+		// TODO Auto-generated method stub
+		addViewItem();		
+		return super.onMenuItemSelected(featureId, item);
+	}
+	
+	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		
+		getScreenSizeandData();
+		initPoints();
+	}
+	
+	private void getScreenSizeandData(){
 		Display display = getWindowManager().getDefaultDisplay();
 		android.graphics.Point size = new android.graphics.Point();
 		display.getSize(size);
@@ -65,7 +84,6 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 		itemHeight = height/6;
 		_root = (ViewGroup)findViewById(R.id.root);
 		views = new ArrayList<ViewItem>();
-		initPoints();
 	}
 	
 	private int getTopBarHeight() {
@@ -95,17 +113,6 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 			}
 		}
 	}
-	
-	OnClickListener resize = new OnClickListener() {
-
-		@Override
-		public void onClick(View v) {
-			// TODO Auto-generated method stub
-			action = Action.reSize;
-			ViewItem item = views.get((Integer) v.getTag());
-			itemResize(item);
-		}
-	};
 	
 	public boolean onTouch(View view, MotionEvent event) {
 		action = Action.move;
@@ -149,7 +156,7 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 	        	
 	        	if (nowItem.positions.get(0).X != X/itemWidth || nowItem.positions.get(0).Y != (Y-topBarHeight)/itemHeight) {
 	        		setItemPosition(nowItem, new int[]{X/itemWidth,(Y-topBarHeight)/itemHeight});
-	        		changePosition(nowItem,X/itemWidth,(Y-topBarHeight)/itemHeight);
+	        		chechOverlap(nowItem);	
 				}
 	        	
 	            RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) view.getLayoutParams();	        	
@@ -168,24 +175,6 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 	    return true;
 	}
 	
-	private void changePosition(ViewItem nowItem, int x, int y){
-		chechOverlap(nowItem);	
-	}
-	
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
-	}
-	
-	@Override
-	public boolean onMenuItemSelected(int featureId, MenuItem item) {
-		// TODO Auto-generated method stub
-		addViewItem();		
-		return super.onMenuItemSelected(featureId, item);
-	}
-	
 	private void addViewItem(){
 		
 		if (views.size() >= 20) {
@@ -199,9 +188,14 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 	    TextView textView = (TextView)_view.findViewById(R.id.textView_grid);
 	    textView.setText(""+ views.size());
 	    
-	    Button btn = (Button)_view.findViewById(R.id.resize);
-	    btn.setOnClickListener(resize);
-	    btn.setTag(views.size());
+	    
+	    ImageView img_resize = (ImageView)_view.findViewById(R.id.resize);
+	    img_resize.setOnClickListener(resize);
+	    img_resize.setTag(views.size());
+	    
+	    ImageView img_delete = (ImageView)_view.findViewById(R.id.delete);
+	    img_delete.setOnClickListener(delete);
+	    img_delete.setTag(views.size());
 	    
 	    int x = getNewViewPosition(ItemSize.min)[0];
 	    int y = getNewViewPosition(ItemSize.min)[1];
@@ -468,6 +462,30 @@ public class MainActivity extends Activity implements View.OnTouchListener{
 		}
 		updateScreenPosition();
 	}
+	
+	/*************************** Listener *************************/
+	OnClickListener delete = new OnClickListener() {
+		
+		@Override
+		public void onClick(View v) {
+			// TODO Auto-generated method stub
+			ViewItem item = views.get((Integer) v.getTag());
+			_root.removeView(item.view);
+			views.remove(item);
+			updateScreenPosition();
+		}
+	};
+	
+	OnClickListener resize = new OnClickListener() {
+
+		@Override
+		public void onClick(View v) {
+			// TODO Auto-generated method stub
+			action = Action.reSize;
+			ViewItem item = views.get((Integer) v.getTag());
+			itemResize(item);
+		}
+	};
 	
 	private void showToast(String msg){
 		Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
