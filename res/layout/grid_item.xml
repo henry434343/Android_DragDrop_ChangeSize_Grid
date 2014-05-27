@@ -32,7 +32,8 @@
             android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_alignParentTop="true"
-            android:src="@drawable/delete" />
+            android:src="@drawable/delete"
+            android:visibility="gone" />
 
         <ImageView
             android:id="@+id/resize"
@@ -40,7 +41,8 @@
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
             android:layout_alignParentRight="true"
-            android:src="@drawable/resize" />
+            android:src="@drawable/resize"
+            android:visibility="gone" />
 
     </RelativeLayout>
 

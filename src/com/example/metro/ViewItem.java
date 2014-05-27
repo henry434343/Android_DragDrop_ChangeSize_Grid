@@ -3,12 +3,17 @@ package com.example.metro;
 import java.util.ArrayList;
 
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 public class ViewItem {
 
 	public View view;
 	public int tag;
 	public ArrayList<Point> positions;
+	public ImageView img_resize;
+	public ImageView img_delete;
+	public TextView textView;
 	
 	public void setPositions(int[]... positions){
 		this.positions = new ArrayList<Point>();

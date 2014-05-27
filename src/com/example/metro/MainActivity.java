@@ -19,7 +19,13 @@ public class MainActivity extends FragmentActivity {
 	@Override
 	public boolean onMenuItemSelected(int featureId, MenuItem item) {
 		// TODO Auto-generated method stub
-		f.addViewItem();		
+		if (item.getItemId() == R.id.action_settings) {
+			f.addViewItem();
+		}
+		else {
+			f.finishEditMode();
+		}
+				
 		return super.onMenuItemSelected(featureId, item);
 	}
 	

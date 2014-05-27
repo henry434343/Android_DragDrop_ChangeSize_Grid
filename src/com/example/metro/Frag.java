@@ -7,6 +7,9 @@ import java.util.Comparator;
 import com.example.metro.ViewItem.ItemSize;
 
 import android.annotation.SuppressLint;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -54,6 +57,12 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		reSize,
 		move
 	}
+	
+	private Mode actionMode;
+	private enum Mode {
+		switchMode,
+		editMode
+	}
 
 	public View v;
 
@@ -64,6 +73,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		((MainActivity)getActivity()).f = this;
 		getScreenSizeandData();
 		initPoints();
+		actionMode = Mode.switchMode;
 		return v;
 	}
 
@@ -79,6 +89,10 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		itemHeight = (height - topBarHeight - actionBar)/5;
 		_root = (ViewGroup)v.findViewById(R.id.root);
 		views = new ArrayList<ViewItem>();
+		
+    	drawView = new DrawView(getActivity(),new int[]{width,height}, new int[]{itemWidth,itemHeight});
+        _root.addView(drawView);
+        drawView.setVisibility(View.GONE);
 	} 
 	
 	private int getTopBarHeight() {
@@ -108,7 +122,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		}
 	}
 	
-	public boolean onTouch(View view, MotionEvent event) {
+	private void moveViewItem(View view, MotionEvent event){
 		action = Action.move;
 	    final int X = (int) event.getRawX();
 	    final int Y = (int) event.getRawY();
@@ -121,9 +135,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		}
 	    switch (event.getAction() & MotionEvent.ACTION_MASK) {
 	        case MotionEvent.ACTION_DOWN:
-	        	
-	        	drawView = new DrawView(getActivity(),new int[]{width,height}, new int[]{itemWidth,itemHeight});
-	            _root.addView(drawView);
+				nowItem.img_delete.setVisibility(View.VISIBLE);
+				nowItem.img_resize.setVisibility(View.VISIBLE);
 	            view.setAlpha((float)0.5);
 	            
 	        	RelativeLayout.LayoutParams lParams = (RelativeLayout.LayoutParams) view.getLayoutParams();
@@ -147,7 +160,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 				updateScreenPosition();
 				
 				view.setAlpha((float)1);
-				_root.removeView(drawView);
+				drawView.setVisibility(View.VISIBLE);
 	        }
             	break;
 	        case MotionEvent.ACTION_MOVE: {
@@ -169,7 +182,20 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	        	break;
 	    }  
 	    _root.invalidate();
-	    return true;
+	}
+	
+	public boolean onTouch(View view, MotionEvent event) {
+    	Log.i("chauster", "onTouch = ");
+
+		if (actionMode == Mode.editMode) {
+			moveViewItem(view, event);
+		}
+		else {
+			Log.i("chauster", "Not In edit Mode");
+		}
+		
+		
+	    return false;
 	}
 	
 	public void addViewItem(){
@@ -196,26 +222,29 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	    layoutParams.topMargin = (height/6)*y;
 	    _view.setLayoutParams(layoutParams);
 
+	    _view.setOnClickListener(switchMode);
+	    _view.setOnLongClickListener(editMode);
 	    _view.setOnTouchListener(this); 
 	    _root.addView(_view);
 	    
 	    ViewItem viewItem = new ViewItem(new int[]{x,y});
 	    viewItem.view = _view;
+	    viewItem.view.setTag(viewItem);
 	    viewItem.size = ItemSize.min;
 	    viewItem.tag = views.size();
 	    views.add(viewItem);
 	    updateScreenPosition();
 	    
-	    TextView textView = (TextView)_view.findViewById(R.id.textView_grid);
-	    textView.setText(""+ views.size());
+	    viewItem.textView = (TextView)_view.findViewById(R.id.textView_grid);
+	    viewItem.textView.setText(""+ views.size());
 	    
-	    ImageView img_resize = (ImageView)_view.findViewById(R.id.resize);
-	    img_resize.setOnClickListener(resize);
-	    img_resize.setTag(viewItem);
+	    viewItem.img_resize = (ImageView)_view.findViewById(R.id.resize);
+	    viewItem.img_resize.setOnClickListener(resize);
+	    viewItem.img_resize.setTag(viewItem);
 	    
-	    ImageView img_delete = (ImageView)_view.findViewById(R.id.delete);
-	    img_delete.setOnClickListener(delete);
-	    img_delete.setTag(viewItem);
+	    viewItem.img_delete = (ImageView)_view.findViewById(R.id.delete);
+	    viewItem.img_delete.setOnClickListener(delete);
+	    viewItem.img_delete.setTag(viewItem);
 	}
 	
 	private int[] getNewViewPosition(ItemSize size){
@@ -479,6 +508,64 @@ public class Frag extends Fragment implements View.OnTouchListener {
 			itemResize(item);
 		}
 	};
+	
+	OnClickListener switchMode = new OnClickListener() {
+		
+		@Override
+		public void onClick(View v) {
+			// TODO Auto-generated method stub
+			Log.i("chauster", "onClick");
+			if (actionMode == Mode.switchMode) {
+				RelativeLayout r = (RelativeLayout)v.findViewById(R.id.grid_cell);
+	            int color = Color.TRANSPARENT;
+	            Drawable background = r.getBackground();
+	            if (background instanceof ColorDrawable)
+	                color = ((ColorDrawable) background).getColor();
+	            
+	            if (color == Color.RED) 
+	            	r.setBackgroundColor(0xff19FF8F);
+	            else 
+	            	r.setBackgroundColor(Color.RED);
+			}
+			else {
+				showEditButton(v);
+			}
+		}
+	};
+	
+	OnLongClickListener editMode = new OnLongClickListener() {
+		
+		@Override
+		public boolean onLongClick(View v) {
+			// TODO Auto-generated method stub
+			actionMode = Mode.editMode;
+			showEditButton(v);
+			
+            drawView.setVisibility(View.VISIBLE);
+            v.setAlpha((float)0.5);
+			Log.i("chauster", "onLongClick");
+			return true;
+		}
+	};
+	
+	private void showEditButton(View v){
+		for (ViewItem item : views) {
+			item.img_delete.setVisibility(View.GONE);
+			item.img_resize.setVisibility(View.GONE);
+		}
+		ViewItem item = (ViewItem) v.getTag();
+		item.img_delete.setVisibility(View.VISIBLE);
+		item.img_resize.setVisibility(View.VISIBLE);
+	}
+	
+	public void finishEditMode(){
+		actionMode = Mode.switchMode;
+		drawView.setVisibility(View.GONE);
+		for (ViewItem item : views) {
+			item.img_delete.setVisibility(View.GONE);
+			item.img_resize.setVisibility(View.GONE);
+		}
+	}
 	
 	private void showToast(String msg){
 		Toast.makeText(getActivity(), msg, Toast.LENGTH_SHORT).show();
