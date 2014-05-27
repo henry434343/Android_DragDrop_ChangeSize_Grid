@@ -21,12 +21,14 @@ public class DB {
 	}
 	
 	private Context ctx;
-	public DB(Context ctx){
+	private String dbName;
+	public DB(Context ctx, String dbName){
 		this.ctx = ctx;
+		this.dbName = dbName;
 	}
 	
 	public ArrayList<RecordItem> getItems(){
-		SharedPreferences prefs = ctx.getSharedPreferences("home",0);
+		SharedPreferences prefs = ctx.getSharedPreferences(dbName,0);
 		Set<String> items = prefs.getStringSet("items", null);
 		ArrayList<RecordItem> arrayList = new ArrayList<DB.RecordItem>();
 		if (items != null) {
@@ -44,7 +46,7 @@ public class DB {
 	} 
 	
 	public void insertItem(String ID, int size, int row, int column){
-		SharedPreferences prefs = ctx.getSharedPreferences("home",0);
+		SharedPreferences prefs = ctx.getSharedPreferences(dbName,0);
 		Set<String> items = prefs.getStringSet("items", new HashSet<String>());
 		items.add(ID);
 		Editor editors = prefs.edit();
@@ -63,7 +65,7 @@ public class DB {
 	}
 	
 	public void removeItem(String ID) {
-		SharedPreferences prefs = ctx.getSharedPreferences("home",0);
+		SharedPreferences prefs = ctx.getSharedPreferences(dbName,0);
 		Set<String> items = prefs.getStringSet("items", new HashSet<String>());
 		items.remove(ID);
 		Editor editors = prefs.edit();

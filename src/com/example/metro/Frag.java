@@ -90,7 +90,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		getScreenSizeandData();
 		initPoints();
 		itemActionMode = ItemActionMode.switchMode;
-		db = new DB(getActivity());
+		db = new DB(getActivity(),"home");
 		for (RecordItem item : db.getItems()) {
 			addViewItem(item.id,item.size, item.row, item.colume);
 			Log.i("chauster", "item.size = "+item.size);
