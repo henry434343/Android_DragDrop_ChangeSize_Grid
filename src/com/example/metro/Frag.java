@@ -36,29 +36,32 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private int _xDelta;
 	private int _yDelta;
 	
-	private int width;
-	private int height;
+	private int screenWidth;
+	private int screeHeight;
 	private int topBarHeight;
 	
 	private int itemWidth;
 	private int itemHeight;
 	
+	private int rowCount = 5;
+	private int columnCount = 6;
+	
 	private ArrayList<ViewItem> views;
-	private ArrayList<Point> points;
+	private ArrayList<Point> screemPointUse;
 	
 	private int actionBar = 0;
 	
-	private Action action;
 	private static DrawView drawView;
 	private static ViewItem tempItem;
 	private boolean isNoSpaceToMove = false;
-	private enum Action {
+	private ItemOperator itemOperator;
+	private enum ItemOperator {
 		reSize,
 		move
 	}
 	
-	private Mode actionMode;
-	private enum Mode {
+	private ItemActionMode itemActionMode;
+	private enum ItemActionMode {
 		switchMode,
 		editMode
 	}
@@ -70,10 +73,14 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		super.onCreateView(inflater, container, savedInstanceState);
 		v = inflater.inflate(R.layout.frag, container, false);
 		((MainActivity)getActivity()).f = this;
+		init();
+		return v;
+	}
+	
+	private void init(){
 		getScreenSizeandData();
 		initPoints();
-		actionMode = Mode.switchMode;
-		return v;
+		itemActionMode = ItemActionMode.switchMode;
 	}
 
 	@SuppressLint("NewApi")
@@ -81,15 +88,18 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		Display display = getActivity().getWindowManager().getDefaultDisplay();
 		android.graphics.Point size = new android.graphics.Point();
 		display.getSize(size);
-		width = size.x;
-		height = size.y;
+		screenWidth = size.x;
+		screeHeight = size.y;
 		topBarHeight = getTopBarHeight();
-		itemWidth = width/4;
-		itemHeight = (height - topBarHeight - actionBar)/5;
+		itemWidth = screenWidth/rowCount;
+		itemHeight = (screeHeight - topBarHeight - actionBar)/columnCount;
+			
 		_root = (ViewGroup)v.findViewById(R.id.root);
 		views = new ArrayList<ViewItem>();
 		
-    	drawView = new DrawView(getActivity(),new int[]{width,height}, new int[]{itemWidth,itemHeight});
+    	drawView = new DrawView(getActivity(),new int[]{screenWidth,screeHeight}, 
+    										  new int[]{itemWidth,itemHeight},
+    										  new int[]{rowCount,columnCount});
         _root.addView(drawView);
         drawView.setVisibility(View.GONE);
         
@@ -110,14 +120,14 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	}
 	
 	private void initPoints(){
-		points = new ArrayList<Point>();
-		for (int i = 0; i <= 3; i++) {
-			for (int j = 0; j <= 4 ; j++) {
+		screemPointUse = new ArrayList<Point>();
+		for (int i = 0; i < rowCount; i++) {
+			for (int j = 0; j < columnCount ; j++) {
 				Point p = new Point();
 				p.X = i;
 				p.Y = j;
 				p.ckeck = false;
-				points.add(p);
+				screemPointUse.add(p);
 			}
 		}
 	}
@@ -134,7 +144,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	}
 	
 	private void moveViewItem(View view, MotionEvent event){
-		action = Action.move;
+		itemOperator = ItemOperator.move;
 	    final int X = (int) event.getRawX();
 	    final int Y = (int) event.getRawY();
 	    ViewItem nowItem = null;
@@ -147,8 +157,6 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	    switch (event.getAction() & MotionEvent.ACTION_MASK) {
 	        case MotionEvent.ACTION_DOWN:
 				cloneViewItem(nowItem);
-				Log.i("chauster", "nowItem.X = "+nowItem.positions.get(0).X);
-				Log.i("chauster", "nowItem.Y = "+nowItem.positions.get(0).Y);
 				nowItem.img_delete.setVisibility(View.VISIBLE);
 				nowItem.img_resize.setVisibility(View.VISIBLE);
 	            view.setAlpha((float)0.5);
@@ -161,7 +169,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	            view.bringToFront();
 	            break;
 	        case MotionEvent.ACTION_UP: {
-	        	if (X/itemWidth > 3 || (Y-topBarHeight)/itemHeight > 4) 
+	        	if (X/itemWidth > rowCount-1 || (Y-topBarHeight)/itemHeight > columnCount-1) 
 					break;
 	        	int rootX = 0;
 	        	int rootY = 0;
@@ -187,7 +195,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	        }
             	break;
 	        case MotionEvent.ACTION_MOVE: {
-	        	if (X/itemWidth > 3 || (Y-topBarHeight)/itemHeight > 4) 
+	        	if (X/itemWidth > rowCount-1 || (Y-topBarHeight)/itemHeight > columnCount-1) 
 					break;
 	        	
 	        	int rootX = X/itemWidth;
@@ -198,8 +206,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 				}
 	        	
 	            RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) view.getLayoutParams();	        	
-	        	if ( 0 <= X - _xDelta && X - _xDelta <= itemWidth*3) layoutParams.leftMargin = X - _xDelta;
-	        	if ( 0 <= Y - _yDelta && Y - _yDelta <= itemHeight*4) layoutParams.topMargin = Y - _yDelta;
+	        	if ( 0 <= X - _xDelta && X - _xDelta <= itemWidth*(rowCount-1)) layoutParams.leftMargin = X - _xDelta;
+	        	if ( 0 <= Y - _yDelta && Y - _yDelta <= itemHeight*(columnCount-1)) layoutParams.topMargin = Y - _yDelta;
 	        	view.setLayoutParams(layoutParams);
 	        }
 	        	break;
@@ -209,7 +217,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	
 	public boolean onTouch(View view, MotionEvent event) {
 		
-		if (actionMode == Mode.editMode) 
+		if (itemActionMode == ItemActionMode.editMode) 
 			moveViewItem(view, event);
 	    return false;
 	}
@@ -217,7 +225,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	
 	public void addViewItem(){
 		
-		if (views.size() >= 20) {
+		if (views.size() >= rowCount * columnCount) {
 			showToast("已達上限");
 			return;
 		}
@@ -235,8 +243,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		}
 	    
 	    RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(itemWidth, itemHeight);
-	    layoutParams.leftMargin = (width/4)*x;
-	    layoutParams.topMargin = (height/6)*y;
+	    layoutParams.leftMargin = (screenWidth/rowCount)*x;
+	    layoutParams.topMargin = ((screeHeight - topBarHeight - actionBar)/columnCount)*y;
 	    _view.setLayoutParams(layoutParams);
 
 	    _view.setOnClickListener(switchMode);
@@ -267,40 +275,40 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private int[] getNewViewPosition(ItemSize size){
 		switch (size) {
 		case min:
-			for (Point p : points) {
+			for (Point p : screemPointUse) {
 				if (!p.ckeck) 
 					return new int[]{p.X,p.Y};
 			}
 			break;
 		case mid_width:
-			for (int i = 0; i < points.size(); i++) {
+			for (int i = 0; i < screemPointUse.size(); i++) {
 				try {
-					if (!points.get(i).ckeck && !points.get(i+1).ckeck ) {
-						if (points.get(i).X == 3) 
+					if (!screemPointUse.get(i).ckeck && !screemPointUse.get(i+1).ckeck ) {
+						if (screemPointUse.get(i).X == rowCount-1) 
 							continue;
-						return new int[]{points.get(i).X,points.get(i).Y};
+						return new int[]{screemPointUse.get(i).X,screemPointUse.get(i).Y};
 					}
 				} catch (Exception e) {}
 			}  
 			break;
 		case mid_height:
-			for (int i = 0; i < points.size(); i++) {
+			for (int i = 0; i < screemPointUse.size(); i++) {
 				try {
-					if (!points.get(i).ckeck && !points.get(i+4).ckeck) {
-						if (points.get(i).Y == 4)
+					if (!screemPointUse.get(i).ckeck && !screemPointUse.get(i+rowCount).ckeck) {
+						if (screemPointUse.get(i).Y == columnCount-1)
 							continue;
-						return new int[]{points.get(i).X,points.get(i).Y};
+						return new int[]{screemPointUse.get(i).X,screemPointUse.get(i).Y};
 					}
 				} catch (Exception e) {}  
 			}
 			break;
 		case max:
-			for (int i = 0; i < points.size(); i++) {
+			for (int i = 0; i < screemPointUse.size(); i++) {
 				try {
-					if (!points.get(i).ckeck && !points.get(i+1).ckeck && !points.get(i+4).ckeck && !points.get(i+5).ckeck) {
-						if (points.get(i).X == 3 || points.get(i).Y == 4)
+					if (!screemPointUse.get(i).ckeck && !screemPointUse.get(i+1).ckeck && !screemPointUse.get(i+rowCount).ckeck && !screemPointUse.get(i+rowCount+1).ckeck) {
+						if (screemPointUse.get(i).X == rowCount-1 || screemPointUse.get(i).Y == columnCount-1)
 							continue;
-						return new int[]{points.get(i).X,points.get(i).Y};
+						return new int[]{screemPointUse.get(i).X,screemPointUse.get(i).Y};
 					}
 				} catch (Exception e) {}
 			}
@@ -316,7 +324,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		for (ViewItem item : views) {
 			for (Point itemP : item.positions) {
 				if (item != viewItem) {
-					for (Point p : points) {
+					for (Point p : screemPointUse) {
 						if (p.isEqual(itemP)) {
 							p.ckeck = true;
 						}
@@ -332,7 +340,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		initPoints();
 		for (ViewItem item : views) {
 			for (Point itemP : item.positions) {
-				for (Point p : points) {
+				for (Point p : screemPointUse) {
 					if (p.isEqual(itemP)) {
 						p.ckeck = true;
 					}
@@ -343,7 +351,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	}
 	
 	private void sortScreenPoints(){
-		Collections.sort(points,  new Comparator<Point>() {
+		Collections.sort(screemPointUse,  new Comparator<Point>() {
 			@Override
 			public int compare(Point lhs, Point rhs) {
 				// TODO Auto-generated method stub
@@ -391,7 +399,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 								otherItem.view.startAnimation(animation);
 							}
 							else {
-								if (action == Action.reSize) {
+								if (itemOperator == ItemOperator.reSize) {
 									itemResize(item);
 									showToast("無空間");
 								}
@@ -422,8 +430,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		int startY = item.positions.get(0).Y;
 		RelativeLayout.LayoutParams layoutParamsup = null;
 		switch (item.size) {
-		case min: 
-			if (startX+1>3) {
+		case min:  
+			if (startX+1>rowCount-1) {
 				try {
 					startX = getNewViewPosition(ItemSize.mid_width)[0];
 					startY = getNewViewPosition(ItemSize.mid_width)[1];
@@ -438,7 +446,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 			break;
 			
 		case mid_width: 
-			if (startY+1>5) {
+			if (startY+1>columnCount-1) {
 				try {
 					startX = getNewViewPosition(ItemSize.mid_height)[0];
 					startY = getNewViewPosition(ItemSize.mid_height)[1];
@@ -453,7 +461,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 			break;
 			
 		case mid_height:
-			if (startX+1>3 || startY+1>5) {
+			if (startX+1>rowCount-1 || startY+1>columnCount-1) {
 				try {
 					startX = getNewViewPosition(ItemSize.max)[0];
 					startY = getNewViewPosition(ItemSize.max)[1];
@@ -535,7 +543,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		@Override
 		public void onClick(View v) {
 			// TODO Auto-generated method stub
-			action = Action.reSize;
+			itemOperator = ItemOperator.reSize;
 			ViewItem item = (ViewItem)v.getTag();
 			itemResize(item);
 		}
@@ -547,7 +555,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		public void onClick(View v) {
 			// TODO Auto-generated method stub
 			Log.i("chauster", "onClick");
-			if (actionMode == Mode.switchMode) {
+			if (itemActionMode == ItemActionMode.switchMode) {
 				RelativeLayout r = (RelativeLayout)v.findViewById(R.id.grid_cell);
 	            int color = Color.TRANSPARENT;
 	            Drawable background = r.getBackground();
@@ -570,7 +578,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		@Override
 		public boolean onLongClick(View v) {
 			// TODO Auto-generated method stub
-			actionMode = Mode.editMode;
+			itemActionMode = ItemActionMode.editMode;
 			showEditButton(v);
 			
             drawView.setVisibility(View.VISIBLE);
@@ -591,7 +599,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	}
 	
 	public void finishEditMode(){
-		actionMode = Mode.switchMode;
+		itemActionMode = ItemActionMode.switchMode;
 		drawView.setVisibility(View.GONE);
 		for (ViewItem item : views) {
 			item.img_delete.setVisibility(View.GONE);

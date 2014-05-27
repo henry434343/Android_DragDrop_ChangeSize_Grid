@@ -7,17 +7,19 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.view.View;
 
-@SuppressLint("NewApi")
+@SuppressLint({ "NewApi", "ViewConstructor" })
 public class DrawView extends View {
     private Paint paint = new Paint();
     private int[] screen;
     private int[] size;
+    private int[] itemCount;
     
-    public DrawView(Context context,int[] screen,int[] size) {
+    public DrawView(Context context,int[]... data) {
         super(context);
         paint.setColor(Color.WHITE);
-        this.screen = screen;
-        this.size = size;
+        this.screen = data[0];
+        this.size = data[1];
+        this.itemCount = data[2];
         setBackgroundColor(Color.GRAY);
         setAlpha((float) 0.2);
     }
@@ -25,16 +27,12 @@ public class DrawView extends View {
     @Override
     public void onDraw(Canvas canvas) {
 	
-            canvas.drawLine(0, 0, 0, screen[1], paint);
-            canvas.drawLine(size[0], 0, size[0], screen[1], paint);
-            canvas.drawLine(size[0]*2, 0, size[0]*2, screen[1], paint);
-            canvas.drawLine(size[0]*3, 0, size[0]*3, screen[1], paint);
-            
-            canvas.drawLine(0, 0, screen[0], 0, paint);
-            canvas.drawLine(0, size[1], screen[0], size[1], paint);
-            canvas.drawLine(0, size[1]*2, screen[0], size[1]*2, paint);
-            canvas.drawLine(0, size[1]*3, screen[0], size[1]*3, paint);
-            canvas.drawLine(0, size[1]*4, screen[0], size[1]*4, paint);
+    	for (int i = 0; i < itemCount[0]; i++) 
+    		canvas.drawLine(size[0]*i, 0, size[0]*i, screen[1], paint);
+    	
+    	
+    	for (int i = 0; i < itemCount[1]; i++)
+    		canvas.drawLine(0, size[1]*i, screen[0], size[1]*i, paint);
     }
 
 }
