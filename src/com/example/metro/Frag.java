@@ -50,6 +50,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	
 	private Action action;
 	private static DrawView drawView;
+	private static ViewItem tempItem;
+	private boolean isNoSpaceToMove = false;
 	private enum Action {
 		reSize,
 		move
@@ -120,6 +122,17 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		}
 	}
 	
+	private void cloneViewItem(ViewItem item){
+		tempItem = new ViewItem();
+		tempItem.positions = new ArrayList<Point>();
+		for (int i = 0 ; i < item.positions.size() ; i++) {
+			Point p = new Point();
+			p.X = item.positions.get(i).X;
+			p.Y = item.positions.get(i).Y;
+			tempItem.positions.add(p);
+		}
+	}
+	
 	private void moveViewItem(View view, MotionEvent event){
 		action = Action.move;
 	    final int X = (int) event.getRawX();
@@ -133,6 +146,9 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		}
 	    switch (event.getAction() & MotionEvent.ACTION_MASK) {
 	        case MotionEvent.ACTION_DOWN:
+				cloneViewItem(nowItem);
+				Log.i("chauster", "nowItem.X = "+nowItem.positions.get(0).X);
+				Log.i("chauster", "nowItem.Y = "+nowItem.positions.get(0).Y);
 				nowItem.img_delete.setVisibility(View.VISIBLE);
 				nowItem.img_resize.setVisibility(View.VISIBLE);
 	            view.setAlpha((float)0.5);
@@ -147,9 +163,18 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	        case MotionEvent.ACTION_UP: {
 	        	if (X/itemWidth > 3 || (Y-topBarHeight)/itemHeight > 4) 
 					break;
-	        	
-	        	int rootX = X/itemWidth;
-	        	int rootY = (Y-topBarHeight)/itemHeight;
+	        	int rootX = 0;
+	        	int rootY = 0;
+	        	if (isNoSpaceToMove) {
+		        	rootX = tempItem.positions.get(0).X;
+		        	rootY = tempItem.positions.get(0).Y;
+		        	isNoSpaceToMove = false;
+				}
+	        	else {
+		        	rootX = X/itemWidth;
+		        	rootY = (Y-topBarHeight)/itemHeight;
+	        	}
+
 				RelativeLayout.LayoutParams layoutParamsup = (RelativeLayout.LayoutParams) view.getLayoutParams();	
 				layoutParamsup.leftMargin = rootX * itemWidth;
 				layoutParamsup.topMargin = rootY * itemHeight;
@@ -246,6 +271,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 				if (!p.ckeck) 
 					return new int[]{p.X,p.Y};
 			}
+			break;
 		case mid_width:
 			for (int i = 0; i < points.size(); i++) {
 				try {
@@ -256,6 +282,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 					}
 				} catch (Exception e) {}
 			}  
+			break;
 		case mid_height:
 			for (int i = 0; i < points.size(); i++) {
 				try {
@@ -266,6 +293,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 					}
 				} catch (Exception e) {}  
 			}
+			break;
 		case max:
 			for (int i = 0; i < points.size(); i++) {
 				try {
@@ -276,6 +304,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 					}
 				} catch (Exception e) {}
 			}
+			break;
 		default:
 			break;
 		}
@@ -337,6 +366,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 							clearPointInScreenFromItem(otherItem);
 							final int[] start = getNewViewPosition(otherItem.size);
 							if (start != null) {
+								isNoSpaceToMove = false;
 								TranslateAnimation animation = new TranslateAnimation(0, (start[0] - otherItem.positions.get(0).X ) * itemWidth, 0, (start[1] - otherItem.positions.get(0).Y )*itemHeight);
 								animation.setDuration(500);
 								animation.setAnimationListener(new TranslateAnimation.AnimationListener() {
@@ -359,7 +389,6 @@ public class Frag extends Fragment implements View.OnTouchListener {
 								setItemPosition(otherItem,new int[]{start[0],start[1]});
 								updateScreenPosition();
 								otherItem.view.startAnimation(animation);
-								Log.i("chauster", "item "+otherItem.tag +" 需要被移動");
 							}
 							else {
 								if (action == Action.reSize) {
@@ -367,7 +396,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 									showToast("無空間");
 								}
 								else {
-									showToast("移動item碰到其他item，但無空間移動");
+									isNoSpaceToMove = true;
 								}
 							}
 							break;
@@ -464,11 +493,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 			item.positions.get(0).Y = start[1];
 			break;
 		case mid_width:
-			item.positions.get(0).X = start[0];
-			item.positions.get(0).Y = start[1];
-			
-			item.positions.get(1).X = start[0]+1;
-			item.positions.get(1).Y = start[1];
+			item.positions.get(0).X = start[0]; item.positions.get(1).X = start[0]+1;
+			item.positions.get(0).Y = start[1]; item.positions.get(1).Y = start[1];
 			break;
 		case mid_height:
 			item.positions.get(0).X = start[0];
@@ -478,17 +504,11 @@ public class Frag extends Fragment implements View.OnTouchListener {
 			item.positions.get(1).Y = start[1]+1;
 			break;
 		case max:
-			item.positions.get(0).X = start[0];
-			item.positions.get(0).Y = start[1];
+			item.positions.get(0).X = start[0];   item.positions.get(1).X = start[0]+1;
+			item.positions.get(0).Y = start[1];   item.positions.get(1).Y = start[1];
 			
-			item.positions.get(1).X = start[0]+1;
-			item.positions.get(1).Y = start[1];
-			
-			item.positions.get(2).X = start[0];
-			item.positions.get(2).Y = start[1]+1;
-			
-			item.positions.get(3).X = start[0]+1;
-			item.positions.get(3).Y = start[1]+1;
+			item.positions.get(2).X = start[0];   item.positions.get(3).X = start[0]+1;
+			item.positions.get(2).Y = start[1]+1; item.positions.get(3).Y = start[1]+1;
 			break;
 
 		default:
