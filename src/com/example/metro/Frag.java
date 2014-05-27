@@ -93,6 +93,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
     	drawView = new DrawView(getActivity(),new int[]{width,height}, new int[]{itemWidth,itemHeight});
         _root.addView(drawView);
         drawView.setVisibility(View.GONE);
+        
 	} 
 	
 	private int getTopBarHeight() {
@@ -185,18 +186,12 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	}
 	
 	public boolean onTouch(View view, MotionEvent event) {
-    	Log.i("chauster", "onTouch = ");
-
-		if (actionMode == Mode.editMode) {
+		
+		if (actionMode == Mode.editMode) 
 			moveViewItem(view, event);
-		}
-		else {
-			Log.i("chauster", "Not In edit Mode");
-		}
-		
-		
 	    return false;
 	}
+	
 	
 	public void addViewItem(){
 		
