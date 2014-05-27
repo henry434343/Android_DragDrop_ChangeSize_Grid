@@ -8,6 +8,7 @@ import android.widget.TextView;
 
 public class ViewItem {
 
+	public String id;
 	public View view;
 	public int tag;
 	public ArrayList<Point> positions;

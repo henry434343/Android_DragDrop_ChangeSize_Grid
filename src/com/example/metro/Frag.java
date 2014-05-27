@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
+import com.example.metro.DB.RecordItem;
 import com.example.metro.ViewItem.ItemSize;
 
 import android.annotation.SuppressLint;
@@ -43,14 +44,14 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private int itemWidth;
 	private int itemHeight;
 	
-	private int rowCount = 5;
-	private int columnCount = 6;
+	private int rowCount = 4;
+	private int columnCount = 5;
 	
 	private ArrayList<ViewItem> views;
 	private ArrayList<Point> screemPointUse;
 	
 	private int actionBar = 0;
-	
+	private DB db;
 	private static DrawView drawView;
 	private static ViewItem tempItem;
 	private boolean isNoSpaceToMove = false;
@@ -67,7 +68,6 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	}
 
 	public View v;
-
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 			Bundle savedInstanceState) {
 		super.onCreateView(inflater, container, savedInstanceState);
@@ -77,10 +77,24 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		return v;
 	}
 	
+	@Override
+	public void onStop() {
+		// TODO Auto-generated method stub
+		super.onStop();
+		Log.i("chauster", "onStop");
+		recordItems();
+	}
+	
 	private void init(){
+
 		getScreenSizeandData();
 		initPoints();
 		itemActionMode = ItemActionMode.switchMode;
+		db = new DB(getActivity());
+		for (RecordItem item : db.getItems()) {
+			addViewItem(item.id,item.size, item.row, item.colume);
+			Log.i("chauster", "item.size = "+item.size);
+		}
 	}
 
 	@SuppressLint("NewApi")
@@ -88,7 +102,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		Display display = getActivity().getWindowManager().getDefaultDisplay();
 		android.graphics.Point size = new android.graphics.Point();
 		display.getSize(size);
-		screenWidth = size.x;
+		screenWidth = size.x;  
 		screeHeight = size.y;
 		topBarHeight = getTopBarHeight();
 		itemWidth = screenWidth/rowCount;
@@ -102,7 +116,6 @@ public class Frag extends Fragment implements View.OnTouchListener {
     										  new int[]{rowCount,columnCount});
         _root.addView(drawView);
         drawView.setVisibility(View.GONE);
-        
 	} 
 	
 	private int getTopBarHeight() {
@@ -222,6 +235,69 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	    return false;
 	}
 	
+	public void addViewItem(String id,int size, int x, int y){
+		
+		if (views.size() >= rowCount * columnCount) {
+			showToast("已達上限");
+			return;
+		}
+		
+	    LayoutInflater layoutInflater = LayoutInflater.from(getActivity());  
+	    _view = layoutInflater.inflate(R.layout.grid_item, null);
+	    
+
+	    RelativeLayout.LayoutParams layoutParams = null;
+	    ViewItem viewItem = null;
+	    switch (size) {
+		case 0:
+			viewItem = new ViewItem(new int[]{x,y});
+			layoutParams = new RelativeLayout.LayoutParams(itemWidth, itemHeight);
+			break; 
+		case 1:
+			viewItem = new ViewItem(new int[]{x,y},new int[]{x+1,y});
+			layoutParams = new RelativeLayout.LayoutParams(itemWidth*2, itemHeight);
+			break;
+		case 2:
+			viewItem = new ViewItem(new int[]{x,y},new int[]{x,y+1});
+			layoutParams = new RelativeLayout.LayoutParams(itemWidth, itemHeight*2);
+			break;
+		case 3:
+			viewItem = new ViewItem(new int[]{x,y},new int[]{x+1,y},new int[]{x,y+1},new int[]{x+1,y+1});
+			layoutParams = new RelativeLayout.LayoutParams(itemWidth*2, itemHeight*2);
+			break;
+  
+		default:
+			break;
+		}
+	    
+	    layoutParams.leftMargin = (screenWidth/rowCount)*x;
+	    layoutParams.topMargin = ((screeHeight - topBarHeight - actionBar)/columnCount)*y;
+	    _view.setLayoutParams(layoutParams);
+
+	    _view.setOnClickListener(switchMode);
+	    _view.setOnLongClickListener(editMode);
+	    _view.setOnTouchListener(this); 
+	    _root.addView(_view);
+	    
+	    viewItem.view = _view;
+	    viewItem.id = id;
+	    viewItem.view.setTag(viewItem);
+	    viewItem.size =  ItemSize.values()[size];
+	    viewItem.tag = views.size();
+	    views.add(viewItem);
+	    updateScreenPosition();  
+	    
+	    viewItem.textView = (TextView)_view.findViewById(R.id.textView_grid);
+	    viewItem.textView.setText(""+ id);
+	    
+	    viewItem.img_resize = (ImageView)_view.findViewById(R.id.resize);
+	    viewItem.img_resize.setOnClickListener(resize);
+	    viewItem.img_resize.setTag(viewItem);
+	    
+	    viewItem.img_delete = (ImageView)_view.findViewById(R.id.delete);
+	    viewItem.img_delete.setOnClickListener(delete);
+	    viewItem.img_delete.setTag(viewItem);
+	}
 	
 	public void addViewItem(){
 		
@@ -253,6 +329,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	    _root.addView(_view);
 	    
 	    ViewItem viewItem = new ViewItem(new int[]{x,y});
+	    viewItem.id = ""+views.size();
 	    viewItem.view = _view;
 	    viewItem.view.setTag(viewItem);
 	    viewItem.size = ItemSize.min;
@@ -535,6 +612,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 			_root.removeView(item.view);
 			views.remove(item);
 			updateScreenPosition();
+			
+			db.removeItem(item.id);
 		}
 	};
 	
@@ -609,6 +688,12 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	
 	private void showToast(String msg){
 		Toast.makeText(getActivity(), msg, Toast.LENGTH_SHORT).show();
+	}
+	
+	public void recordItems(){
+		for (ViewItem item : views) {
+			db.insertItem(item.id, item.size.ordinal(), item.positions.get(0).X, item.positions.get(0).Y);
+		}
 	}
 
 }
