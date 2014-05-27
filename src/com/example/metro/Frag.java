@@ -16,9 +16,6 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.Display;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -272,7 +269,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		case max:
 			for (int i = 0; i < points.size(); i++) {
 				try {
-					if (!points.get(i).ckeck && !points.get(i+1).ckeck && !points.get(i+4).ckeck&& !points.get(i+5).ckeck) {
+					if (!points.get(i).ckeck && !points.get(i+1).ckeck && !points.get(i+4).ckeck && !points.get(i+5).ckeck) {
 						if (points.get(i).X == 3 || points.get(i).Y == 4)
 							continue;
 						return new int[]{points.get(i).X,points.get(i).Y};
@@ -283,6 +280,22 @@ public class Frag extends Fragment implements View.OnTouchListener {
 			break;
 		}
 		return null;
+	}
+	
+	private void clearPointInScreenFromItem(ViewItem viewItem){
+		initPoints();
+		for (ViewItem item : views) {
+			for (Point itemP : item.positions) {
+				if (item != viewItem) {
+					for (Point p : points) {
+						if (p.isEqual(itemP)) {
+							p.ckeck = true;
+						}
+					}
+				}
+			}
+		}
+		sortScreenPoints();
 	}
 	
 	private void updateScreenPosition(){
@@ -297,7 +310,10 @@ public class Frag extends Fragment implements View.OnTouchListener {
 				}
 			}
 		}
-		
+		sortScreenPoints();
+	}
+	
+	private void sortScreenPoints(){
 		Collections.sort(points,  new Comparator<Point>() {
 			@Override
 			public int compare(Point lhs, Point rhs) {
@@ -318,6 +334,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 					for (Point otherP : otherItem.positions) {
 						if (p.isEqual(otherP)) {
 							isOverlap = true;
+							clearPointInScreenFromItem(otherItem);
 							final int[] start = getNewViewPosition(otherItem.size);
 							if (start != null) {
 								TranslateAnimation animation = new TranslateAnimation(0, (start[0] - otherItem.positions.get(0).X ) * itemWidth, 0, (start[1] - otherItem.positions.get(0).Y )*itemHeight);
@@ -394,8 +411,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		case mid_width: 
 			if (startY+1>5) {
 				try {
-					startX = getNewViewPosition(ItemSize.mid_width)[0];
-					startY = getNewViewPosition(ItemSize.mid_width)[1];
+					startX = getNewViewPosition(ItemSize.mid_height)[0];
+					startY = getNewViewPosition(ItemSize.mid_height)[1];
 				} catch (Exception e) {
 					// TODO: handle exception
 				}
@@ -409,8 +426,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		case mid_height:
 			if (startX+1>3 || startY+1>5) {
 				try {
-					startX = getNewViewPosition(ItemSize.mid_width)[0];
-					startY = getNewViewPosition(ItemSize.mid_width)[1];
+					startX = getNewViewPosition(ItemSize.max)[0];
+					startY = getNewViewPosition(ItemSize.max)[1];
 				} catch (Exception e) {
 					// TODO: handle exception
 				}
