@@ -54,6 +54,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private DB db;
 	private static DrawView drawView;
 	private static ViewItem tempItem;
+    private static int clickItemPointIndex = 0;
+
 	private boolean isNoSpaceToMove = false;
 	private ItemOperator itemOperator;
 	private enum ItemOperator {
@@ -146,6 +148,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	}
 	
 	private void cloneViewItem(ViewItem item){
+		Log.i("chauster", "cloneViewItem");
 		tempItem = new ViewItem();
 		tempItem.positions = new ArrayList<Point>();
 		for (int i = 0 ; i < item.positions.size() ; i++) {
@@ -153,6 +156,11 @@ public class Frag extends Fragment implements View.OnTouchListener {
 			p.X = item.positions.get(i).X;
 			p.Y = item.positions.get(i).Y;
 			tempItem.positions.add(p);
+		}
+		
+		for (Point p : tempItem.positions) {
+			Log.i("chauster", "p.X = "+p.X);
+			Log.i("chauster", "p.Y = "+p.Y);
 		}
 	}
 	
@@ -169,65 +177,100 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		}
 	    switch (event.getAction() & MotionEvent.ACTION_MASK) {
 	        case MotionEvent.ACTION_DOWN:
-				cloneViewItem(nowItem);
-				nowItem.img_delete.setVisibility(View.VISIBLE);
-				nowItem.img_resize.setVisibility(View.VISIBLE);
-	            view.setAlpha((float)0.5);
-	            
-	        	RelativeLayout.LayoutParams lParams = (RelativeLayout.LayoutParams) view.getLayoutParams();
-	        	lParams.leftMargin = X/itemWidth * itemWidth;
-	        	lParams.topMargin = (Y-topBarHeight)/itemHeight * itemHeight;
-	            _xDelta = X - lParams.leftMargin;
-	            _yDelta = Y - lParams.topMargin;
-	            view.bringToFront();
+	        	touchDownItem(nowItem, X, Y);
 	            break;
-	        case MotionEvent.ACTION_UP: {
-	        	if (X/itemWidth > rowCount-1 || (Y-topBarHeight)/itemHeight > columnCount-1) 
-					break;
-	        	int rootX = 0;
-	        	int rootY = 0;
-	        	if (isNoSpaceToMove) {
-		        	rootX = tempItem.positions.get(0).X;
-		        	rootY = tempItem.positions.get(0).Y;
-		        	isNoSpaceToMove = false;
-				}
-	        	else {
-		        	rootX = X/itemWidth;
-		        	rootY = (Y-topBarHeight)/itemHeight;
-	        	}
-
-				RelativeLayout.LayoutParams layoutParamsup = (RelativeLayout.LayoutParams) view.getLayoutParams();	
-				layoutParamsup.leftMargin = rootX * itemWidth;
-				layoutParamsup.topMargin = rootY * itemHeight;
-				view.setLayoutParams(layoutParamsup);
-				setItemPosition(nowItem, new int[]{rootX,rootY});
-				updateScreenPosition();
-				
-				view.setAlpha((float)1);
-				drawView.setVisibility(View.VISIBLE);
-	        }
+	        case MotionEvent.ACTION_UP: 
+	        	touchUpItem(nowItem, X, Y);
             	break;
-	        case MotionEvent.ACTION_MOVE: {
-	        	if (X/itemWidth > rowCount-1 || (Y-topBarHeight)/itemHeight > columnCount-1) 
-					break;
-	        	
-	        	int rootX = X/itemWidth;
-	        	int rootY = (Y-topBarHeight)/itemHeight;
-	        	if (nowItem.positions.get(0).X != rootX || nowItem.positions.get(0).Y != rootY) {
-	        		setItemPosition(nowItem, new int[]{rootX,rootY});
-	        		chechOverlap(nowItem);	
-				}
-	        	
-	            RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) view.getLayoutParams();	        	
-	        	if ( 0 <= X - _xDelta && X - _xDelta <= itemWidth*(rowCount-1)) layoutParams.leftMargin = X - _xDelta;
-	        	if ( 0 <= Y - _yDelta && Y - _yDelta <= itemHeight*(columnCount-1)) layoutParams.topMargin = Y - _yDelta;
-	        	view.setLayoutParams(layoutParams);
-	        }
+	        case MotionEvent.ACTION_MOVE: 
+	        	if (clickItemPointIndex == -1) touchDownItem(nowItem, X, Y);
+	        	else touchMoveItem(nowItem, X, Y);
 	        	break;
 	    }  
 	    _root.invalidate();
 	}
 	
+	private void touchDownItem(ViewItem nowItem, int X, int Y){
+		cloneViewItem(nowItem);
+		nowItem.img_delete.setVisibility(View.VISIBLE);
+		nowItem.img_resize.setVisibility(View.VISIBLE);
+		nowItem.view.setAlpha((float)0.5);
+        for (int i = 0; i < nowItem.positions.size(); i++) {
+			if (nowItem.positions.get(i).X == X/itemWidth && nowItem.positions.get(i).Y == (Y-topBarHeight)/itemHeight) {
+				clickItemPointIndex = i ; 
+				break;
+			}
+		}
+        
+    	RelativeLayout.LayoutParams lParam = (RelativeLayout.LayoutParams) nowItem.view.getLayoutParams();
+        _xDelta = X - lParam.leftMargin;
+        _yDelta = Y - lParam.topMargin;
+        
+        nowItem.view.bringToFront();
+	}
+	
+	private void touchMoveItem(ViewItem nowItem, int X, int Y){
+    	if (X/itemWidth > rowCount-1 || (Y-topBarHeight)/itemHeight > columnCount-1) 
+			return;
+    	
+    	int rootX = X/itemWidth;
+    	int rootY = (Y-topBarHeight)/itemHeight;
+    	
+    	int index = clickItemPointIndex >= nowItem.positions.size() ? 0 : clickItemPointIndex;
+    	if (nowItem.positions.get(index).X != rootX || nowItem.positions.get(index).Y != rootY) {
+    		//設定起始位置
+    		if (nowItem.size == ItemSize.min) {
+    			setItemPosition(nowItem, new int[]{rootX,rootY});
+			}
+    		else if (nowItem.size == ItemSize.mid_width) {
+				if (clickItemPointIndex == 0) setItemPosition(nowItem, new int[]{rootX,rootY});
+				else setItemPosition(nowItem, new int[]{rootX-1,rootY});
+			}
+    		else if (nowItem.size == ItemSize.mid_height) {
+				if (clickItemPointIndex == 0) setItemPosition(nowItem, new int[]{rootX,rootY});
+				else setItemPosition(nowItem, new int[]{rootX,rootY-1});
+			}
+    		else  {
+				if (clickItemPointIndex == 0) setItemPosition(nowItem, new int[]{rootX,rootY});
+				else if (clickItemPointIndex == 1) setItemPosition(nowItem, new int[]{rootX-1,rootY});
+				else if (clickItemPointIndex == 2) setItemPosition(nowItem, new int[]{rootX,rootY-1});
+				else setItemPosition(nowItem, new int[]{rootX-1,rootY-1});
+			}
+    		chechOverlap(nowItem);	
+		}
+    	
+        RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) nowItem.view.getLayoutParams();	        	
+    	if ( 0 <= X - _xDelta && X - _xDelta <= itemWidth*(rowCount-1)) layoutParams.leftMargin = X - _xDelta;
+    	if ( 0 <= Y - _yDelta && Y - _yDelta <= itemHeight*(columnCount-1)) layoutParams.topMargin = Y - _yDelta;
+    	nowItem.view.setLayoutParams(layoutParams);
+	}
+	
+	private void touchUpItem(ViewItem nowItem, int X, int Y){
+    	if (X/itemWidth > rowCount-1 || (Y-topBarHeight)/itemHeight > columnCount-1) 
+			return;
+    	int rootX = 0;
+    	int rootY = 0;
+    	if (isNoSpaceToMove) {
+        	rootX = tempItem.positions.get(0).X;
+        	rootY = tempItem.positions.get(0).Y;
+        	isNoSpaceToMove = false;
+		}
+    	else {
+        	rootX = nowItem.positions.get(0).X;
+        	rootY = nowItem.positions.get(0).Y;
+    	}
+
+		RelativeLayout.LayoutParams layoutParamsup = (RelativeLayout.LayoutParams) nowItem.view.getLayoutParams();	
+		layoutParamsup.leftMargin = rootX * itemWidth;
+		layoutParamsup.topMargin = rootY * itemHeight;
+		nowItem.view.setLayoutParams(layoutParamsup);
+		setItemPosition(nowItem, new int[]{rootX,rootY});
+		updateScreenPosition();
+		
+		nowItem.view.setAlpha((float)1);
+		drawView.setVisibility(View.VISIBLE);
+	}
+		
 	public boolean onTouch(View view, MotionEvent event) {
 		
 		if (itemActionMode == ItemActionMode.editMode) 
@@ -512,9 +555,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 				try {
 					startX = getNewViewPosition(ItemSize.mid_width)[0];
 					startY = getNewViewPosition(ItemSize.mid_width)[1];
-				} catch (Exception e) {
-					// TODO: handle exception
-				}
+				} catch (Exception e) {}
 			}
 			layoutParamsup = new RelativeLayout.LayoutParams(itemWidth*2, itemHeight);	
 			item.setPositions(new int[]{startX,startY},
@@ -527,9 +568,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 				try {
 					startX = getNewViewPosition(ItemSize.mid_height)[0];
 					startY = getNewViewPosition(ItemSize.mid_height)[1];
-				} catch (Exception e) {
-					// TODO: handle exception
-				}
+				} catch (Exception e) {}
 			}
 			layoutParamsup = new RelativeLayout.LayoutParams(itemWidth, itemHeight*2);
 			item.setPositions(new int[]{startX,startY},
@@ -542,9 +581,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 				try {
 					startX = getNewViewPosition(ItemSize.max)[0];
 					startY = getNewViewPosition(ItemSize.max)[1];
-				} catch (Exception e) {
-					// TODO: handle exception
-				}
+				} catch (Exception e) {}
 			}
 			layoutParamsup = new RelativeLayout.LayoutParams(itemWidth*2, itemHeight*2);
 			item.setPositions(new int[]{startX,startY},
@@ -563,8 +600,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		default:
 			break;
 		}  
-		updateScreenPosition();
 		
+		updateScreenPosition();
 		layoutParamsup.leftMargin = startX * itemWidth;
 		layoutParamsup.topMargin = startY * itemHeight;
 		item.view.setLayoutParams(layoutParamsup);
@@ -657,12 +694,14 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		@Override
 		public boolean onLongClick(View v) {
 			// TODO Auto-generated method stub
-			itemActionMode = ItemActionMode.editMode;
+			if (itemActionMode != ItemActionMode.editMode) {
+		    	clickItemPointIndex = -1;
+				itemActionMode = ItemActionMode.editMode;
+	            drawView.setVisibility(View.VISIBLE);
+			}
 			showEditButton(v);
-			
-            drawView.setVisibility(View.VISIBLE);
             v.setAlpha((float)0.5);
-			Log.i("chauster", "onLongClick");
+
 			return true;
 		}
 	};
