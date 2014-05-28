@@ -45,10 +45,10 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private int navigationBar = 0;
 	
 	private int itemWidth;
-	private int itemHeight;
+	private int itemHeight; 
 	
-	private int rowCount = 5;
-	private int columnCount = 6;
+	private int rowCount = 4;
+	private int columnCount = 5;
 	
 	private ArrayList<ViewItem> views;
 	private ArrayList<Point> screemPointUse;
