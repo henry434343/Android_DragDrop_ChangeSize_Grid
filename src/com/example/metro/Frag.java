@@ -337,8 +337,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	    viewItem.textView.setText(""+ id);
 	    
 	    viewItem.img_resize = (ImageView)_view.findViewById(R.id.resize);
-	    viewItem.img_resize.setOnClickListener(resize);
-//	    viewItem.img_resize.setOnTouchListener(zoom);
+//	    viewItem.img_resize.setOnClickListener(resize);
+	    viewItem.img_resize.setOnTouchListener(zoom);
 	    viewItem.img_resize.setTag(viewItem);
 	    
 	    viewItem.img_delete = (ImageView)_view.findViewById(R.id.delete);
@@ -388,8 +388,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	    viewItem.textView.setText(""+ views.size());
 	    
 	    viewItem.img_resize = (ImageView)_view.findViewById(R.id.resize);
-	    viewItem.img_resize.setOnClickListener(resize);
-//	    viewItem.img_resize.setOnTouchListener(zoom);
+//	    viewItem.img_resize.setOnClickListener(resize);
+	    viewItem.img_resize.setOnTouchListener(zoom);
 	    viewItem.img_resize.setTag(viewItem);
 	    
 	    viewItem.img_delete = (ImageView)_view.findViewById(R.id.delete);
