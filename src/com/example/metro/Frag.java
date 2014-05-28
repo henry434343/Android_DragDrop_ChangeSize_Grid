@@ -19,6 +19,7 @@ import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnTouchListener;
 import android.view.ViewGroup;
 import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
@@ -28,7 +29,7 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
+  
 @SuppressLint("NewApi")
 public class Frag extends Fragment implements View.OnTouchListener {
 
@@ -46,8 +47,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private int itemWidth;
 	private int itemHeight;
 	
-	private int rowCount = 4;
-	private int columnCount = 5;
+	private int rowCount = 5;
+	private int columnCount = 6;
 	
 	private ArrayList<ViewItem> views;
 	private ArrayList<Point> screemPointUse;
@@ -154,8 +155,6 @@ public class Frag extends Fragment implements View.OnTouchListener {
 			}
 		}
 	} 
-	
-	
 	
 	private void cloneViewItem(ViewItem item){
 		tempItem = new ViewItem();
@@ -339,6 +338,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	    
 	    viewItem.img_resize = (ImageView)_view.findViewById(R.id.resize);
 	    viewItem.img_resize.setOnClickListener(resize);
+//	    viewItem.img_resize.setOnTouchListener(zoom);
 	    viewItem.img_resize.setTag(viewItem);
 	    
 	    viewItem.img_delete = (ImageView)_view.findViewById(R.id.delete);
@@ -389,6 +389,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	    
 	    viewItem.img_resize = (ImageView)_view.findViewById(R.id.resize);
 	    viewItem.img_resize.setOnClickListener(resize);
+//	    viewItem.img_resize.setOnTouchListener(zoom);
 	    viewItem.img_resize.setTag(viewItem);
 	    
 	    viewItem.img_delete = (ImageView)_view.findViewById(R.id.delete);
@@ -737,6 +738,125 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		for (ViewItem item : views) {
 			db.insertItem(item.id, item.size.ordinal(), item.positions.get(0).X, item.positions.get(0).Y);
 		}
+	}
+	
+	int startX = 0;
+	int startY = 0;
+	OnTouchListener zoom = new OnTouchListener() {
+		
+		@Override
+		public boolean onTouch(View v, MotionEvent event) {
+			// TODO Auto-generated method stub
+			ViewItem item = (ViewItem)v.getTag();
+		    switch (event.getAction() & MotionEvent.ACTION_MASK) {
+		        case MotionEvent.ACTION_DOWN:
+		        	startX = (int) event.getRawX();
+		        	startY = (int) event.getRawY();
+		            break;
+		        case MotionEvent.ACTION_UP: 
+	            	break;
+		        case MotionEvent.ACTION_MOVE: 
+		        	RelativeLayout.LayoutParams lParam = (RelativeLayout.LayoutParams) item.view.getLayoutParams();
+		        	int diffX = (int)(event.getRawX() - startX);
+		        	int diffY = (int)(event.getRawY() - startY);
+		        	lParam.width += diffX;
+		        	lParam.height += diffY;
+		        	
+		        	if (lParam.width > itemWidth * 2) lParam.width = itemWidth * 2;
+		        	else if (lParam.width < itemWidth) lParam.width = itemWidth;
+		        	
+		        	if (lParam.height > itemHeight * 2) lParam.height = itemHeight * 2;
+		        	else if (lParam.height < itemHeight) lParam.height = itemHeight;
+		        		
+		            item.view.setLayoutParams(lParam);
+		        	startX = (int) event.getRawX();
+		        	startY = (int) event.getRawY();
+		        	
+		        	
+		        	int indexX = ((int)event.getRawX()/itemWidth);
+		        	int indexY = ((((int)event.getRawY() - statusBar - actionBar)/itemHeight));
+		        	setPostionWhenZoom(item, indexX, indexY);
+		        	break;
+		    }  
+			return true;
+		}
+	};
+	
+	private void setPostionWhenZoom(ViewItem item, int X, int Y){
+		int x = item.positions.get(0).X;
+		int y = item.positions.get(0).Y;
+		switch (item.size) {
+		case min:
+			try {
+				if (item.positions.get(0).X < X && item.positions.get(0).Y == Y) setmid_width(item, x, y);
+				else if (item.positions.get(0).X == X && item.positions.get(0).Y < Y) setmid_height(item, x, y); 
+				else if (item.positions.get(0).X < X && item.positions.get(0).Y < Y) setmax(item, x, y);
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
+
+			break;
+		case mid_width:
+			try {
+				if (X < item.positions.get(1).X && item.positions.get(1).Y == Y) setmin(item, x, y);
+				else if (item.positions.get(1).X == X && item.positions.get(1).Y < Y) setmax(item, x, y);
+				else if (X < item.positions.get(1).X && item.positions.get(1).Y < Y) setmid_height(item, x, y);
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
+
+			break;
+		case mid_height:
+			try {
+				if (item.positions.get(1).X == X&& Y < item.positions.get(1).Y) setmin(item, x, y);
+				else if (item.positions.get(1).X < X && item.positions.get(1).Y == Y) setmax(item, x, y);
+				else if (item.positions.get(1).X < X&& Y < item.positions.get(1).Y) setmid_width(item, x, y);
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
+
+			break;
+		case max:
+			try {
+				if (X < item.positions.get(3).X && Y < item.positions.get(3).Y) setmin(item, x, y);
+				else if (X < item.positions.get(3).X && item.positions.get(3).Y == Y) setmid_height(item, x, y); 
+				else if (item.positions.get(3).X == X && item.positions.get(3).Y < Y) setmid_width(item, x, y);
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
+
+			break;
+
+		default:
+			break;
+		}
+		updateScreenPosition();
+		chechOverlap(item);
+	}
+	
+	private void setmin(ViewItem item, int x, int y){
+		item.setPositions(new int[]{x,y});
+		item.size = ItemSize.mid_width;
+	}
+	
+	private void setmid_width(ViewItem item, int x, int y){
+		item.setPositions(new int[]{x,y},
+		  		  new int[]{x+1,y});
+		item.size = ItemSize.mid_width;
+	}
+	
+	private void setmid_height(ViewItem item, int x, int y){
+		item.setPositions(new int[]{x,y},
+		  		  new int[]{x,y+1});
+		item.size = ItemSize.mid_height;
+	}
+	
+	private void setmax(ViewItem item, int x, int y){
+		item.setPositions(new int[]{x,y},
+		  		  new int[]{x+1,y},
+		  		  new int[]{x,y+1},
+		  		  new int[]{x+1,y+1});
+		item.size = ItemSize.max;
 	}
 
 }
