@@ -39,7 +39,9 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	
 	private int screenWidth;
 	private int screeHeight;
-	private int topBarHeight;
+	private int statusBar = 0;
+	private int actionBar = 0;
+	private int navigationBar = 0;
 	
 	private int itemWidth;
 	private int itemHeight;
@@ -50,7 +52,6 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private ArrayList<ViewItem> views;
 	private ArrayList<Point> screemPointUse;
 	
-	private int actionBar = 0;
 	private DB db;
 	private static DrawView drawView;
 	private static ViewItem tempItem;
@@ -106,9 +107,12 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		display.getSize(size);
 		screenWidth = size.x;  
 		screeHeight = size.y;
-		topBarHeight = getTopBarHeight();
+		getBarHeight();
 		itemWidth = screenWidth/rowCount;
-		itemHeight = (screeHeight - topBarHeight - actionBar)/columnCount;
+		
+       
+		
+		itemHeight = (screeHeight - statusBar - actionBar - navigationBar)/columnCount;
 			
 		_root = (ViewGroup)v.findViewById(R.id.root);
 		views = new ArrayList<ViewItem>();
@@ -118,10 +122,12 @@ public class Frag extends Fragment implements View.OnTouchListener {
     										  new int[]{rowCount,columnCount});
         _root.addView(drawView);
         drawView.setVisibility(View.GONE);
+        
+
+        Log.i("chauster", "actionbar = "+actionBar);
 	} 
 	
-	private int getTopBarHeight() {
-		int statusBar = 0;
+	private void getBarHeight() {
 		int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
 		if (resourceId > 0) {
 			statusBar = getResources().getDimensionPixelSize(resourceId);
@@ -131,7 +137,9 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		if ( getActivity().getTheme().resolveAttribute(android.R.attr.actionBarSize, tv, true))
 			actionBar = TypedValue.complexToDimensionPixelSize(tv.data,getResources().getDisplayMetrics());
 		
-		return statusBar+actionBar;
+	    int resId = getResources().getIdentifier("navigation_bar_height", "dimen", "android");
+        if (resId > 0)
+        	navigationBar = getResources().getDimensionPixelSize(resId);
 	}
 	
 	private void initPoints(){
@@ -148,7 +156,6 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	}
 	
 	private void cloneViewItem(ViewItem item){
-		Log.i("chauster", "cloneViewItem");
 		tempItem = new ViewItem();
 		tempItem.positions = new ArrayList<Point>();
 		for (int i = 0 ; i < item.positions.size() ; i++) {
@@ -156,11 +163,6 @@ public class Frag extends Fragment implements View.OnTouchListener {
 			p.X = item.positions.get(i).X;
 			p.Y = item.positions.get(i).Y;
 			tempItem.positions.add(p);
-		}
-		
-		for (Point p : tempItem.positions) {
-			Log.i("chauster", "p.X = "+p.X);
-			Log.i("chauster", "p.Y = "+p.Y);
 		}
 	}
 	
@@ -196,7 +198,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		nowItem.img_resize.setVisibility(View.VISIBLE);
 		nowItem.view.setAlpha((float)0.5);
         for (int i = 0; i < nowItem.positions.size(); i++) {
-			if (nowItem.positions.get(i).X == X/itemWidth && nowItem.positions.get(i).Y == (Y-topBarHeight)/itemHeight) {
+			if (nowItem.positions.get(i).X == X/itemWidth && nowItem.positions.get(i).Y == (Y- statusBar - actionBar)/itemHeight) {
 				clickItemPointIndex = i ; 
 				break;
 			}
@@ -210,11 +212,11 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	}
 	
 	private void touchMoveItem(ViewItem nowItem, int X, int Y){
-    	if (X/itemWidth > rowCount-1 || (Y-topBarHeight)/itemHeight > columnCount-1) 
+    	if (X/itemWidth > rowCount-1 || (Y- statusBar - actionBar)/itemHeight > columnCount-1) 
 			return;
     	
     	int rootX = X/itemWidth;
-    	int rootY = (Y-topBarHeight)/itemHeight;
+    	int rootY = (Y- statusBar - actionBar)/itemHeight;
     	
     	int index = clickItemPointIndex >= nowItem.positions.size() ? 0 : clickItemPointIndex;
     	if (nowItem.positions.get(index).X != rootX || nowItem.positions.get(index).Y != rootY) {
@@ -246,7 +248,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	}
 	
 	private void touchUpItem(ViewItem nowItem, int X, int Y){
-    	if (X/itemWidth > rowCount-1 || (Y-topBarHeight)/itemHeight > columnCount-1) 
+    	if (X/itemWidth > rowCount-1 || (Y- statusBar - actionBar)/itemHeight > columnCount-1) 
 			return;
     	int rootX = 0;
     	int rootY = 0;
@@ -314,7 +316,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		}
 	    
 	    layoutParams.leftMargin = (screenWidth/rowCount)*x;
-	    layoutParams.topMargin = ((screeHeight - topBarHeight - actionBar)/columnCount)*y;
+	    layoutParams.topMargin = ((screeHeight - statusBar - actionBar - navigationBar)/columnCount)*y;
 	    _view.setLayoutParams(layoutParams);
 
 	    _view.setOnClickListener(switchMode);
@@ -363,7 +365,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	    
 	    RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(itemWidth, itemHeight);
 	    layoutParams.leftMargin = (screenWidth/rowCount)*x;
-	    layoutParams.topMargin = ((screeHeight - topBarHeight - actionBar)/columnCount)*y;
+	    layoutParams.topMargin = ((screeHeight - statusBar - actionBar - navigationBar)/columnCount)*y;
 	    _view.setLayoutParams(layoutParams);
 
 	    _view.setOnClickListener(switchMode);
