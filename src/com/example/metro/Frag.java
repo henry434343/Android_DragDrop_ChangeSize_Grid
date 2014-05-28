@@ -153,7 +153,9 @@ public class Frag extends Fragment implements View.OnTouchListener {
 				screemPointUse.add(p);
 			}
 		}
-	}
+	} 
+	
+	
 	
 	private void cloneViewItem(ViewItem item){
 		tempItem = new ViewItem();
