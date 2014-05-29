@@ -20,7 +20,7 @@ public class MainActivity extends FragmentActivity {
 	public boolean onMenuItemSelected(int featureId, MenuItem item) {
 		// TODO Auto-generated method stub
 		if (item.getItemId() == R.id.action_settings) {
-			f.addViewItem();
+			f.addViewItem(null,0,-1,-1);
 		}
 		else {
 			f.finishEditMode();

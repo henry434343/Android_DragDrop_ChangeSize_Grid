@@ -13,7 +13,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.Display;
 import android.view.LayoutInflater;
@@ -47,8 +46,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private int itemWidth;
 	private int itemHeight; 
 	
-	private int rowCount = 4;
-	private int columnCount = 5;
+	private int rowCount = 5;
+	private int columnCount = 6;
 	
 	private ArrayList<ViewItem> views;
 	private ArrayList<Point> screemPointUse;
@@ -85,7 +84,6 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	public void onStop() {
 		// TODO Auto-generated method stub
 		super.onStop();
-		Log.i("chauster", "onStop");
 		recordItems();
 	}
 	
@@ -97,9 +95,21 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		db = new DB(getActivity(),"home");
 		for (RecordItem item : db.getItems()) {
 			addViewItem(item.id,item.size, item.row, item.colume);
-			Log.i("chauster", "item.size = "+item.size);
 		}
+		v.setOnTouchListener(screenFinish);
 	}
+	
+	OnTouchListener screenFinish = new OnTouchListener() {
+		
+		@Override
+		public boolean onTouch(View v, MotionEvent event) {
+			// TODO Auto-generated method stub
+			if (itemActionMode == ItemActionMode.editMode) {
+				finishEditMode();
+			}
+			return false;
+		}
+	};
 
 	@SuppressLint("NewApi")
 	private void getScreenSizeandData(){
@@ -123,9 +133,6 @@ public class Frag extends Fragment implements View.OnTouchListener {
     										  new int[]{rowCount,columnCount});
         _root.addView(drawView);
         drawView.setVisibility(View.GONE);
-        
-
-        Log.i("chauster", "actionbar = "+actionBar);
 	} 
 	
 	private void getBarHeight() {
@@ -292,6 +299,17 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	    _view = layoutInflater.inflate(R.layout.grid_item, null);
 	    
 
+	    if (x == -1 && y == -1) {
+		    try {
+			    x = getNewViewPosition(ItemSize.min)[0];
+			    y = getNewViewPosition(ItemSize.min)[1];
+			} catch (Exception e) {
+				// TODO: handle exception
+				showToast("無空間");
+				return;
+			}
+		}
+	    
 	    RelativeLayout.LayoutParams layoutParams = null;
 	    ViewItem viewItem = null;
 	    switch (size) {
@@ -326,7 +344,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	    _root.addView(_view);
 	    
 	    viewItem.view = _view;
-	    viewItem.id = id;
+	    viewItem.id = id == null? ""+views.size() : id;
 	    viewItem.view.setTag(viewItem);
 	    viewItem.size =  ItemSize.values()[size];
 	    viewItem.tag = views.size();
@@ -334,58 +352,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	    updateScreenPosition();  
 	    
 	    viewItem.textView = (TextView)_view.findViewById(R.id.textView_grid);
-	    viewItem.textView.setText(""+ id);
-	    
-	    viewItem.img_resize = (ImageView)_view.findViewById(R.id.resize);
-	    viewItem.img_resize.setOnClickListener(resize);
-//	    viewItem.img_resize.setOnTouchListener(zoom);
-	    viewItem.img_resize.setTag(viewItem);
-	    
-	    viewItem.img_delete = (ImageView)_view.findViewById(R.id.delete);
-	    viewItem.img_delete.setOnClickListener(delete);
-	    viewItem.img_delete.setTag(viewItem);
-	}
-	
-	public void addViewItem(){
-		
-		if (views.size() >= rowCount * columnCount) {
-			showToast("已達上限");
-			return;
-		}
-		
-	    LayoutInflater layoutInflater = LayoutInflater.from(getActivity());  
-	    _view = layoutInflater.inflate(R.layout.grid_item, null);
-	    int x, y;
-	    try {
-		    x = getNewViewPosition(ItemSize.min)[0];
-		    y = getNewViewPosition(ItemSize.min)[1];
-		} catch (Exception e) {
-			// TODO: handle exception
-			showToast("無空間");
-			return;
-		}
-	    
-	    RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(itemWidth, itemHeight);
-	    layoutParams.leftMargin = (screenWidth/rowCount)*x;
-	    layoutParams.topMargin = ((screeHeight - statusBar - actionBar - navigationBar)/columnCount)*y;
-	    _view.setLayoutParams(layoutParams);
-
-	    _view.setOnClickListener(switchMode);
-	    _view.setOnLongClickListener(editMode);
-	    _view.setOnTouchListener(this); 
-	    _root.addView(_view);
-	    
-	    ViewItem viewItem = new ViewItem(new int[]{x,y});
-	    viewItem.id = ""+views.size();
-	    viewItem.view = _view;
-	    viewItem.view.setTag(viewItem);
-	    viewItem.size = ItemSize.min;
-	    viewItem.tag = views.size();
-	    views.add(viewItem);
-	    updateScreenPosition();
-	    
-	    viewItem.textView = (TextView)_view.findViewById(R.id.textView_grid);
-	    viewItem.textView.setText(""+ views.size());
+	    viewItem.textView.setText(""+ viewItem.id);
 	    
 	    viewItem.img_resize = (ImageView)_view.findViewById(R.id.resize);
 	    viewItem.img_resize.setOnClickListener(resize);
@@ -675,7 +642,6 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		@Override
 		public void onClick(View v) {
 			// TODO Auto-generated method stub
-			Log.i("chauster", "onClick");
 			if (itemActionMode == ItemActionMode.switchMode) {
 				RelativeLayout r = (RelativeLayout)v.findViewById(R.id.grid_cell);
 	            int color = Color.TRANSPARENT;
@@ -740,6 +706,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		}
 	}
 	
+	/****************Resize by zoom out****************/
 	int startX = 0;
 	int startY = 0;
 	OnTouchListener zoom = new OnTouchListener() {
@@ -836,7 +803,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	
 	private void setmin(ViewItem item, int x, int y){
 		item.setPositions(new int[]{x,y});
-		item.size = ItemSize.mid_width;
+		item.size = ItemSize.min;
 	}
 	
 	private void setmid_width(ViewItem item, int x, int y){
