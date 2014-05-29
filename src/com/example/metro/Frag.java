@@ -46,18 +46,19 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private int itemWidth;
 	private int itemHeight; 
 	
-	private int rowCount = 5;
-	private int columnCount = 6;
+	private int rowCount = 4;
+	private int columnCount = 5;
 	
 	private ArrayList<ViewItem> views;
 	private ArrayList<Point> screemPointUse;
 	
 	private DB db;
 	private static DrawView drawView;
-	private static ViewItem tempItem;
+	private int tempX;
+	private int tempY;
     private static int clickItemPointIndex = 0;
 
-	private boolean isNoSpaceToMove = false;
+	private static boolean isNoSpaceToMove = false;
 	private ItemOperator itemOperator;
 	private enum ItemOperator {
 		reSize,
@@ -126,6 +127,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		itemHeight = (screeHeight - statusBar - actionBar - navigationBar)/columnCount;
 			
 		_root = (ViewGroup)v.findViewById(R.id.root);
+		_root.removeAllViews();
 		views = new ArrayList<ViewItem>();
 		
     	drawView = new DrawView(getActivity(),new int[]{screenWidth,screeHeight}, 
@@ -164,14 +166,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	} 
 	
 	private void cloneViewItem(ViewItem item){
-		tempItem = new ViewItem();
-		tempItem.positions = new ArrayList<Point>();
-		for (int i = 0 ; i < item.positions.size() ; i++) {
-			Point p = new Point();
-			p.X = item.positions.get(i).X;
-			p.Y = item.positions.get(i).Y;
-			tempItem.positions.add(p);
-		}
+		tempX = item.positions.get(0).X;
+		tempY = item.positions.get(0).Y;
 	}
 	
 	private void moveViewItem(View view, MotionEvent event){
@@ -261,8 +257,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
     	int rootX = 0;
     	int rootY = 0;
     	if (isNoSpaceToMove) {
-        	rootX = tempItem.positions.get(0).X;
-        	rootY = tempItem.positions.get(0).Y;
+        	rootX = tempX;
+        	rootY = tempY;
         	isNoSpaceToMove = false;
 		}
     	else {
@@ -273,9 +269,14 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		RelativeLayout.LayoutParams layoutParamsup = (RelativeLayout.LayoutParams) nowItem.view.getLayoutParams();	
 		layoutParamsup.leftMargin = rootX * itemWidth;
 		layoutParamsup.topMargin = rootY * itemHeight;
+		if (nowItem.size == ItemSize.min) {
+			layoutParamsup.width = itemWidth;
+			layoutParamsup.height = itemHeight;
+		}
 		nowItem.view.setLayoutParams(layoutParamsup);
 		setItemPosition(nowItem, new int[]{rootX,rootY});
 		updateScreenPosition();
+		chechOverlap(nowItem);
 		
 		nowItem.view.setAlpha((float)1);
 		drawView.setVisibility(View.VISIBLE);
@@ -489,7 +490,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 								setItemPosition(otherItem,new int[]{start[0],start[1]});
 								updateScreenPosition();
 								otherItem.view.startAnimation(animation);
-							}
+							}  
 							else {
 								if (itemOperator == ItemOperator.reSize) {
 									itemResize(item);
