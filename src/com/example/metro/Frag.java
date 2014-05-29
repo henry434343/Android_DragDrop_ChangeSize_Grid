@@ -3,6 +3,8 @@ package com.example.metro;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import com.example.metro.DB.RecordItem;
 import com.example.metro.ViewItem.ItemSize;
@@ -12,6 +14,7 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.util.TypedValue;
 import android.view.Display;
@@ -47,7 +50,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private int itemHeight; 
 	
 	private int rowCount = 4;
-	private int columnCount = 5;
+	private int columnCount = 6;
 	
 	private ArrayList<ViewItem> views;
 	private ArrayList<Point> screemPointUse;
@@ -80,7 +83,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		init();
 		return v;
 	}
-	
+	  
 	@Override
 	public void onStop() {
 		// TODO Auto-generated method stub
@@ -215,7 +218,10 @@ public class Frag extends Fragment implements View.OnTouchListener {
         nowItem.view.bringToFront();
 	}
 	
-	private void touchMoveItem(ViewItem nowItem, int X, int Y){
+	private int moveX;
+	private int moveY;
+	private ViewItem moveItem;
+	private void touchMoveItem(final ViewItem nowItem, final int X, final int Y){
     	if (X/itemWidth > rowCount-1 || (Y- statusBar - actionBar)/itemHeight > columnCount-1) 
 			return;
     	
@@ -242,7 +248,21 @@ public class Frag extends Fragment implements View.OnTouchListener {
 				else if (clickItemPointIndex == 2) setItemPosition(nowItem, new int[]{rootX,rootY-1});
 				else setItemPosition(nowItem, new int[]{rootX-1,rootY-1});
 			}
-    		chechOverlap(nowItem);	
+    		
+    		moveX = X;
+    		moveY = Y;
+    		new Timer().schedule(new TimerTask() {
+				
+				@Override
+				public void run() {
+					// TODO Auto-generated method stub
+					if (moveX == X && moveY == Y) {
+						moveItem = nowItem;
+						viewOverlap.sendEmptyMessage(0);
+					}
+					
+				}
+			}, 500);
 		}
     	
         RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) nowItem.view.getLayoutParams();	        	
@@ -250,6 +270,12 @@ public class Frag extends Fragment implements View.OnTouchListener {
     	if ( 0 <= Y - _yDelta && Y - _yDelta <= itemHeight*(columnCount-1)) layoutParams.topMargin = Y - _yDelta;
     	nowItem.view.setLayoutParams(layoutParams);
 	}
+	
+	private Handler viewOverlap = new Handler() {
+		public void handleMessage(android.os.Message msg) {
+			chechOverlap(moveItem);	
+		};
+	};
 	
 	private void touchUpItem(ViewItem nowItem, int X, int Y){
     	if (X/itemWidth > rowCount-1 || (Y- statusBar - actionBar)/itemHeight > columnCount-1) 
