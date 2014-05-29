@@ -835,23 +835,30 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	}
 	
 	private void setmin(ViewItem item, int x, int y){
+		Log.i("chauster", "min ("+x+","+y+")");
 		item.setPositions(new int[]{x,y});
-		item.size = ItemSize.mid_width;
+		item.size = ItemSize.min;
 	}
 	
 	private void setmid_width(ViewItem item, int x, int y){
+		Log.i("chauster", "mid_width ("+x+","+y+")");
+
 		item.setPositions(new int[]{x,y},
 		  		  new int[]{x+1,y});
 		item.size = ItemSize.mid_width;
 	}
 	
 	private void setmid_height(ViewItem item, int x, int y){
+		Log.i("chauster", "mid_height ("+x+","+y+")");
+
 		item.setPositions(new int[]{x,y},
 		  		  new int[]{x,y+1});
 		item.size = ItemSize.mid_height;
 	}
 	
 	private void setmax(ViewItem item, int x, int y){
+		Log.i("chauster", "max ("+x+","+y+")");
+
 		item.setPositions(new int[]{x,y},
 		  		  new int[]{x+1,y},
 		  		  new int[]{x,y+1},
