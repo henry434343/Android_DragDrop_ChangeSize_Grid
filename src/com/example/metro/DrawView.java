@@ -20,7 +20,7 @@ public class DrawView extends View {
         this.screen = data[0];
         this.size = data[1];
         this.itemCount = data[2];
-        setBackgroundColor(Color.GRAY);
+        setBackgroundColor(Color.DKGRAY);
         setAlpha((float) 0.2);
     }
 

@@ -1,8 +1,6 @@
 package com.example.metro;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -16,6 +14,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.Display;
 import android.view.LayoutInflater;
@@ -50,7 +49,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private int itemHeight; 
 	
 	private int rowCount = 4;
-	private int columnCount = 6;
+	private int columnCount = 5;
 	
 	private ArrayList<ViewItem> views;
 	private ArrayList<Point> screemPointUse;
@@ -119,16 +118,14 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private void getScreenSizeandData(){
 		Display display = getActivity().getWindowManager().getDefaultDisplay();
 		android.graphics.Point size = new android.graphics.Point();
-		display.getSize(size);
+		
+		display.getRealSize(size);
 		screenWidth = size.x;  
 		screeHeight = size.y;
 		getBarHeight();
 		itemWidth = screenWidth/rowCount;
-		
-       
-		
 		itemHeight = (screeHeight - statusBar - actionBar - navigationBar)/columnCount;
-			
+
 		_root = (ViewGroup)v.findViewById(R.id.root);
 		_root.removeAllViews();
 		views = new ArrayList<ViewItem>();
@@ -157,11 +154,11 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	
 	private void initPoints(){
 		screemPointUse = new ArrayList<Point>();
-		for (int i = 0; i < rowCount; i++) {
-			for (int j = 0; j < columnCount ; j++) {
+		for (int i = 0; i < columnCount ; i++) {
+			for (int j = 0; j < rowCount ; j++) {
 				Point p = new Point();
-				p.X = i;
-				p.Y = j;
+				p.X = j;
+				p.Y = i;
 				p.ckeck = false;
 				screemPointUse.add(p);
 			}
@@ -224,10 +221,14 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private void touchMoveItem(final ViewItem nowItem, final int X, final int Y){
     	if (X/itemWidth > rowCount-1 || (Y- statusBar - actionBar)/itemHeight > columnCount-1) 
 			return;
+       	
+        RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) nowItem.view.getLayoutParams();	        	
+    	layoutParams.leftMargin = X - _xDelta;
+    	layoutParams.topMargin = Y - _yDelta;
+    	nowItem.view.setLayoutParams(layoutParams);
     	
     	int rootX = X/itemWidth;
     	int rootY = (Y- statusBar - actionBar)/itemHeight;
-    	
     	int index = clickItemPointIndex >= nowItem.positions.size() ? 0 : clickItemPointIndex;
     	if (nowItem.positions.get(index).X != rootX || nowItem.positions.get(index).Y != rootY) {
     		//設定起始位置
@@ -248,9 +249,9 @@ public class Frag extends Fragment implements View.OnTouchListener {
 				else if (clickItemPointIndex == 2) setItemPosition(nowItem, new int[]{rootX,rootY-1});
 				else setItemPosition(nowItem, new int[]{rootX-1,rootY-1});
 			}
-    		
     		moveX = X;
     		moveY = Y;
+    		
     		new Timer().schedule(new TimerTask() {
 				
 				@Override
@@ -260,15 +261,9 @@ public class Frag extends Fragment implements View.OnTouchListener {
 						moveItem = nowItem;
 						viewOverlap.sendEmptyMessage(0);
 					}
-					
 				}
-			}, 500);
+			}, 350);
 		}
-    	
-        RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) nowItem.view.getLayoutParams();	        	
-    	if ( 0 <= X - _xDelta && X - _xDelta <= itemWidth*(rowCount-1)) layoutParams.leftMargin = X - _xDelta;
-    	if ( 0 <= Y - _yDelta && Y - _yDelta <= itemHeight*(columnCount-1)) layoutParams.topMargin = Y - _yDelta;
-    	nowItem.view.setLayoutParams(layoutParams);
 	}
 	
 	private Handler viewOverlap = new Handler() {
@@ -280,32 +275,93 @@ public class Frag extends Fragment implements View.OnTouchListener {
 	private void touchUpItem(ViewItem nowItem, int X, int Y){
     	if (X/itemWidth > rowCount-1 || (Y- statusBar - actionBar)/itemHeight > columnCount-1) 
 			return;
-    	int rootX = 0;
-    	int rootY = 0;
+        
+    	int rootX = nowItem.positions.get(0).X;
+    	int rootY = nowItem.positions.get(0).Y;
+    	setItemPosition(nowItem, new int[]{rootX,rootY});
+    	chechOverlap(nowItem);
+    	for (ViewItem item: views) {
+			if (item != nowItem) {
+				for	(Point itemP : item.positions) {
+					for (Point p : nowItem.positions) {
+						if (p.isEqual(itemP)) {
+							isNoSpaceToMove = true;
+							break;
+						}
+					}
+				}
+			}
+		}
+    	
     	if (isNoSpaceToMove) {
         	rootX = tempX;
         	rootY = tempY;
         	isNoSpaceToMove = false;
-		}
-    	else {
-        	rootX = nowItem.positions.get(0).X;
-        	rootY = nowItem.positions.get(0).Y;
-    	}
+		} 
+    	
+        boolean isReset = false;
+        if (nowItem.size == ItemSize.mid_width) {
+            if (rootX < 0) {
+                rootX = 0;
+                resetItem(nowItem, rootX, rootY);
+                isReset = true;
+            }
+            else if (rootX+1 >= rowCount) {
+            	resetItem(nowItem, rootX, rootY);
+                isReset = true;
+            }
+        }
+        else if (nowItem.size == ItemSize.mid_height) {
+            if (rootY < 0) {
+                rootY = 0;
+                resetItem(nowItem, rootX, rootY);
+                isReset = true;
+            }
+            else if (rootY+1 >= columnCount) {
+            	resetItem(nowItem, rootX, rootY);
+                isReset = true;
+            }
+        }
+        else if (nowItem.size == ItemSize.max) {
+            if (rootX < 0 || rootY < 0) {
+                rootX = rootX < 0 ? 0 : rootX;
+                rootY = rootY < 0 ? 0 : rootY;
+                resetItem(nowItem, rootX, rootY);
+                isReset = true;
+            }
+            else if (rootX+1 >= rowCount || rootY+1 >= columnCount) {
+            	resetItem(nowItem, rootX, rootY);
+                isReset = true;
+            }
+        }
+        
+        if (!isReset) {
+    		RelativeLayout.LayoutParams layoutParamsup = (RelativeLayout.LayoutParams) nowItem.view.getLayoutParams();	
+    		layoutParamsup.leftMargin = rootX * itemWidth;
+    		layoutParamsup.topMargin = rootY * itemHeight;
+    		if (nowItem.size == ItemSize.min) {
+    			layoutParamsup.width = itemWidth;
+    			layoutParamsup.height = itemHeight;
+    		}
+    		nowItem.view.setLayoutParams(layoutParamsup);
+        }
 
-		RelativeLayout.LayoutParams layoutParamsup = (RelativeLayout.LayoutParams) nowItem.view.getLayoutParams();	
-		layoutParamsup.leftMargin = rootX * itemWidth;
-		layoutParamsup.topMargin = rootY * itemHeight;
-		if (nowItem.size == ItemSize.min) {
-			layoutParamsup.width = itemWidth;
-			layoutParamsup.height = itemHeight;
-		}
-		nowItem.view.setLayoutParams(layoutParamsup);
 		setItemPosition(nowItem, new int[]{rootX,rootY});
 		updateScreenPosition();
 		chechOverlap(nowItem);
 		
 		nowItem.view.setAlpha((float)1);
 		drawView.setVisibility(View.VISIBLE);
+	}
+	
+	private void resetItem(ViewItem item, int rootX, int rootY) {
+		item.size = ItemSize.min;
+		RelativeLayout.LayoutParams layoutParamsup = (RelativeLayout.LayoutParams) item.view.getLayoutParams();	
+		layoutParamsup.leftMargin = rootX * itemWidth;
+		layoutParamsup.topMargin = rootY * itemHeight;
+		layoutParamsup.width = itemWidth;
+		layoutParamsup.height = itemHeight;
+		item.view.setLayoutParams(layoutParamsup);
 	}
 		
 	public boolean onTouch(View view, MotionEvent event) {
@@ -334,7 +390,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 				// TODO: handle exception
 				showToast("無空間");
 				return;
-			}
+			} 
 		}
 	    
 	    RelativeLayout.LayoutParams layoutParams = null;
@@ -360,7 +416,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 		default:
 			break;
 		}
-	    
+	     
 	    layoutParams.leftMargin = (screenWidth/rowCount)*x;
 	    layoutParams.topMargin = ((screeHeight - statusBar - actionBar - navigationBar)/columnCount)*y;
 	    _view.setLayoutParams(layoutParams);
@@ -446,12 +502,12 @@ public class Frag extends Fragment implements View.OnTouchListener {
 					for (Point p : screemPointUse) {
 						if (p.isEqual(itemP)) {
 							p.ckeck = true;
+							
 						}
-					}
+					} 
 				}
 			}
 		}
-		sortScreenPoints();
 	}
 	
 	private void updateScreenPosition(){
@@ -462,24 +518,11 @@ public class Frag extends Fragment implements View.OnTouchListener {
 				for (Point p : screemPointUse) {
 					if (p.isEqual(itemP)) {
 						p.ckeck = true;
+						break;
 					}
 				}
 			}
 		}
-		sortScreenPoints();
-	}
-	
-	private void sortScreenPoints(){
-		Collections.sort(screemPointUse,  new Comparator<Point>() {
-			@Override
-			public int compare(Point lhs, Point rhs) {
-				// TODO Auto-generated method stub
-				if (lhs.Y > rhs.Y) return 1;
-				else if (lhs.Y < rhs.Y) return -1;
-				else if (lhs.X > rhs.X) return 1;
-				else return -1;
-			}
-		});
 	}
 	
 	private void chechOverlap(ViewItem item){
@@ -497,7 +540,7 @@ public class Frag extends Fragment implements View.OnTouchListener {
 								TranslateAnimation animation = new TranslateAnimation(0, (start[0] - otherItem.positions.get(0).X ) * itemWidth, 0, (start[1] - otherItem.positions.get(0).Y )*itemHeight);
 								animation.setDuration(500);
 								animation.setAnimationListener(new TranslateAnimation.AnimationListener() {
-									
+								 	
 									@Override
 									public void onAnimationStart(Animation animation) {}
 									
@@ -523,6 +566,8 @@ public class Frag extends Fragment implements View.OnTouchListener {
 									showToast("無空間");
 								}
 								else {
+									Log.i("chauster", "無空間可移動");
+									setItemPosition(otherItem, new int[]{otherItem.positions.get(0).X,otherItem.positions.get(0).Y});
 									isNoSpaceToMove = true;
 								}
 							}
@@ -544,10 +589,11 @@ public class Frag extends Fragment implements View.OnTouchListener {
         view.setVisibility(View.VISIBLE);
 	}
 	
-	private void itemResize(ViewItem item){
+	private void itemResize(final ViewItem item){
 		int startX = item.positions.get(0).X;
 		int startY = item.positions.get(0).Y;
 		RelativeLayout.LayoutParams layoutParamsup = null;
+
 		switch (item.size) {
 		case min:  
 			if (startX+1>rowCount-1) {
